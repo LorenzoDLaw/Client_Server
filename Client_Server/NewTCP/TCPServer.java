@@ -1,8 +1,7 @@
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -26,19 +25,22 @@ public class TCPServer{
                         while(true){
                                try (Socket Client_Soket = server_Soket.accept()){
                                         
-                                        //Creation of bufferedReader for read the stream
-                                        BufferedReader input = new BufferedReader(new InputStreamReader(Client_Soket.getInputStream()));
+                                        //Creation of bufferedReader for read the console
+                                        //BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
                                         //Creation of PrintWriter for send to the stream
-                                        PrintWriter output = new PrintWriter(Client_Soket.getOutputStream(),true);
+                                        //PrintWriter output = new PrintWriter(Client_Soket.getOutputStream(),true);
+
+                                        ObjectInputStream objInput = new ObjectInputStream(Client_Soket.getInputStream());
+                                        ObjectOutputStream objOutput = new ObjectOutputStream(Client_Soket.getOutputStream());
 
                                         //Handshake with client
-                                        if (!handShake(input, output)) {
+                                        if (!handShake(objInput, objOutput)) {
                                                 System.out.println("[Server] Handshake failed. Dropping client.");
                                                 continue;// return to listen the stream waiting for request
                                         }
 
                                         //Start the Calculator
-                                        runCalculator(input, output);
+                                        runCalculator(objInput, objOutput);
      
                                }
                         }                    
@@ -48,7 +50,7 @@ public class TCPServer{
 
         }
 
-        private static boolean handShake(BufferedReader in, PrintWriter out) throws IOException{
+        private static boolean handShake(ObjectInputStream in, ObjectOutputStream out) throws IOException{
                 System.out.println("SERVER: waiting for client");
                 //First step of the handshake 
                 if (!in.readLine().equals(CLIENT_HELLO)){
@@ -56,7 +58,7 @@ public class TCPServer{
                    return false;     
                 }
                 //Second step of hamdshake
-                out.println(SERVER_HELLO);
+                out.writeObject(SERVER_HELLO);
                 System.out.println("SERVER: HELLO sent");
 
                 //Third step of handshake
@@ -66,48 +68,71 @@ public class TCPServer{
                 }
                 System.out.println("SERVER: ACK client arrived");
                 //Forth step of handshake ACK server
-                out.println(ACK_SERVER);
+                out.writeObject(ACK_SERVER);
+
+                
 
                 return true;
         }
 
         
-        private static void runCalculator(BufferedReader in, PrintWriter out)throws IOException{
-                //Start the logic for comunication with the client
+        private static void runCalculator(ObjectInputStream in, ObjectOutputStream out)
+            throws IOException, ClassNotFoundException {
 
-                out.println("WELCOME TO CALCULATOR");
-                out.println("CHOSE YOUT FIRST VALUE:");
-                String value1 = in.readLine();
-                Double val1=0.0;
-                try {
-                        val1 = Double.parseDouble(value1);
-                } catch (NumberFormatException e) {
-                        out.println("ERROR -> '" + value1 + "' is not a valid value.");
-                        // END the comunication 
-                        out.println(END);
-                        return;
+                // Welcome banner
+                out.writeObject("=== WELCOME TO THE CALCULATOR ===");
+                out.flush();
+
+                // --- Ask for value1 ---
+                double val1 = promptDouble(in, out, "Enter first value:");
+                if (Double.isNaN(val1)) return;          // error already sent to client
+
+                // --- Ask for operator ---
+                out.writeObject("Enter operator (+, -, *, /):");
+                out.flush();
+                String opInput = (String) in.readObject();
+                System.out.println("[Server] Operator received: " + opInput);
+
+                if (opInput == null || opInput.trim().isEmpty()) {
+                out.writeObject(MathResponseDTO.error("No operator provided."));
+                out.flush();
+                return;
                 }
+                char op = opInput.trim().charAt(0);
 
+                // --- Ask for value2 ---
+                double val2 = promptDouble(in, out, "Enter second value:");
+                if (Double.isNaN(val2)) return;
 
-                out.println("CHOSE YOUT OPERATOR:");
-                String operator = in.readLine();
-                char op=operator.charAt(0);
+                // --- Build DTO, calculate and return result ---
+                MathRequestDTO  request  = new MathRequestDTO(val1, op, val2);
+                String response = new MathHendler(request).calc();
+                System.out.println("[Server] Sending response: " + response);
 
-                out.println("CHOSE YOUT SECOND VALUE:");
-                String value2 = in.readLine();
-                Double val2=0.0;
-                try {
-                        val2 = Double.parseDouble(value2);
-                } catch (NumberFormatException e) {
-                        out.println("ERROR -> '" + value2 + "' is not a valid.");
-                        // END the comunication 
-                        out.println(END);
-                        return;
-                }
-                MathHendler calc = new MathHendler(op,val1,val2);
-                out.println(calc.calc());
-                out.println(END);
+                out.writeObject(response);
+                out.flush();
         }
 
+
+        private static double promptDouble(ObjectInputStream in, ObjectOutputStream out,
+                                       String prompt)
+            throws IOException, ClassNotFoundException {
+
+        out.writeObject(prompt);
+        out.flush();
+
+        String raw = (String) in.readObject();
+        System.out.println("[Server] Received: " + raw);
+
+        try {
+            return Double.parseDouble(raw.trim());
+        } catch (NumberFormatException e) {
+            out.writeObject(MathResponseDTO.error("'" + raw + "' is not a valid number."));
+            out.flush();
+            return Double.NaN;
+        }
+    }
+
+    
 }
 

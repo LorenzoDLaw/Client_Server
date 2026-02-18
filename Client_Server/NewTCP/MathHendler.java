@@ -6,10 +6,17 @@ public class MathHendler{
         private double value1;
         private double value2;
 
+        private final MathRequestDTO request;
+
+        public MathHendler(MathRequestDTO request){
+            this.request = request;
+        }
+
         public MathHendler(char operator, double value1, double value2) {
             this.operator = operator;
             this.value1 = value1;
             this.value2 = value2;
+            this.request = null;
         }
 
         public String calc(/*char operator, double value1, double value2*/){

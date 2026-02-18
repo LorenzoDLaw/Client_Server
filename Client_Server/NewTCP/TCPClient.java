@@ -16,9 +16,12 @@ public class TCPClient{
                 
                 try (Socket socket = new Socket(serverAddress, PORT)) {
                         //Creation of BufferedReader for read the stream
-                        BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                        //BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                         //Creation of PrintWriter for send to the stream
-                        PrintWriter output = new PrintWriter(socket.getOutputStream(),true);
+                        //PrintWriter output = new PrintWriter(socket.getOutputStream(),true);
+
+                        ObjectOutputStream output   = new ObjectOutputStream(socket.getOutputStream());
+                        ObjectInputStream  input    = new ObjectInputStream(socket.getInputStream());
 
                         //Buffer reader for read user input for the calculator
                         BufferedReader cmdInput = new BufferedReader(new InputStreamReader(System.in));
@@ -41,7 +44,7 @@ public class TCPClient{
                                         if (serverLine.contains(":")) {
                                                 System.out.print("> ");
                                                 String userInput = cmdInput.readLine();
-                                                output.println(userInput);
+                                                output.writeObject(userInput);
                                         }
                                 }
                         }
@@ -58,10 +61,10 @@ public class TCPClient{
         }
 
 
-        private static boolean Handshake(BufferedReader in, PrintWriter out) throws IOException{
+        private static boolean Handshake(ObjectInputStream in, ObjectOutputStream out) throws IOException{
                 //Handshake
                 //First step of the handshake 
-                out.println(CLIENT_HELLO);
+                out.writeObject(CLIENT_HELLO);
                 System.out.println("CLIENT: HELLO sent");
                 
                 //Second step of hamdshake
@@ -71,7 +74,7 @@ public class TCPClient{
                 }
 
                 //Third step of handshake ACK client
-                out.println(ACK_CLIENT);
+                out.writeObject(ACK_CLIENT);
                 System.out.println("CLIENT: ACK sent");
 
                 //Forth step of handshake 
