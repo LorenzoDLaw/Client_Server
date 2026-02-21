@@ -13,10 +13,11 @@ public class MathResponseDTO implements Serializable {
 
     // --- Factory helpers keep construction intention clear ---
 
-    public static MathResponseDTO ok(double result) {
+    public static MathResponseDTO right(double result) {
         return new MathResponseDTO(String.valueOf(result), true);
     }
 
+    //Use this for handle error in MathHandler
     public static MathResponseDTO error(String errorMessage) {
         return new MathResponseDTO(errorMessage, false);
     }

@@ -12,68 +12,24 @@ public class MathHendler{
             this.request = request;
         }
 
-        public MathHendler(char operator, double value1, double value2) {
-            this.operator = operator;
-            this.value1 = value1;
-            this.value2 = value2;
-            this.request = null;
-        }
+        public MathResponseDTO calc(){
+            //Use a switch case for handle the operator
+            char operator = request.getOperator();
+            double value1 = request.getValue1();
+            double value2 = request.getValue2();
+            
+            switch(operator){
 
-        public String calc(/*char operator, double value1, double value2*/){
-                double result = 0;
-                String sResult = null;
-                //Use a switch case for handle the operator
-                switch(operator){
-                        case '+' :
-                            result = value1 + value2;
-                            sResult = ""+result;
-                            break;
-                        case '-' :
-                            result = value1 - value2;
-                            sResult = ""+result;
-                            break;
-                        case '*' :
-                            result = value1 * value2;
-                            sResult = ""+result;
-                            break;
-                        case '/' :
-                            if(value2 != 0){
-                                result = value1 / value2;
-                                sResult = ""+result;
-                                break;
-                            } else {
-                                return ("ERROR: CANNOT DIVIDE ZERO");
-                            }
-                        default: 
-                            sResult = "ERROR -> INVALID MATH OPERATOR";
+                case '+': return MathResponseDTO.right(value1 + value2);
+                case '-': return MathResponseDTO.right(value1 - value2);
+                case '*': return MathResponseDTO.right(value1 * value2);
+                case '/':
+                    if (value2 != 0) return MathResponseDTO.right(value1 / value2);
+                    else             return MathResponseDTO.error("Cannot divide by zero");
+                default:
+                    return MathResponseDTO.error("Invalid operator: '" + operator + "'");
                 }
-                return (sResult);
+
         }
-
-    //Getter and setter
-    public char getOperator() {
-        return operator;
-    }
-
-    public void setOperator(char operator) {
-        this.operator = operator;
-    }
-
-    public double getValue1() {
-        return value1;
-    }
-
-    public void setValue1(double value1) {
-        this.value1 = value1;
-    }
-
-    public double getValue2() {
-        return value2;
-    }
-
-    public void setValue2(double value2) {
-        this.value2 = value2;
-    }
-
         
 }

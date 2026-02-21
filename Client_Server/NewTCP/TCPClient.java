@@ -31,54 +31,61 @@ public class TCPClient{
 
                         }else{
                                 //Here the server service start
-                                String serverLine;
                                 // Keep reading lines from the server until we get the END message
-                                while ((serverLine = input.readLine()) != null){
-                                        // What it should be:
-                                        System.out.println(serverLine);
-                                        if (serverLine.equals(END)) {
-                                                System.out.println("Session ended.");
-                                                break; // exit the loop 
+                                while (true) {
+                                        Object received = input.readObject();
+
+                                        if (received instanceof MathResponseDTO) {
+                                                // Obtain the final result otherwise we get an error from the MathHandler
+                                                MathResponseDTO response = (MathResponseDTO) received;
+                                                System.out.println(response); 
+                                                break;
+
+                                        } else if (received instanceof String) {
+                                                String serverLine = (String) received;
+                                                System.out.println(serverLine);
+
+                                                if (serverLine.equals(END)) {
+                                                        System.out.println("Session ended.");
+                                                        break;
+                                                }
+                                                // If it's a prompt read user input and send it back
+                                                if (serverLine.contains(":")) {
+                                                        System.out.print("> ");
+                                                        String userInput = cmdInput.readLine();
+                                                        output.writeObject(userInput);
+                                                        output.flush();
+                                                }
                                         }
-                                        //For reed the server request
-                                        if (serverLine.contains(":")) {
-                                                System.out.print("> ");
-                                                String userInput = cmdInput.readLine();
-                                                output.writeObject(userInput);
                                         }
-                                }
+                                
                         }
-
-
-                        
-                   
                 } catch (Exception e) {
                         e.printStackTrace();
-                }
-
-        
-        
+                }        
         }
 
 
-        private static boolean Handshake(ObjectInputStream in, ObjectOutputStream out) throws IOException{
+        private static boolean Handshake(ObjectInputStream in, ObjectOutputStream out) throws IOException, ClassNotFoundException{
                 //Handshake
                 //First step of the handshake 
                 out.writeObject(CLIENT_HELLO);
+                out.flush();
                 System.out.println("CLIENT: HELLO sent");
                 
                 //Second step of hamdshake
-                if (!in.readLine().equals(SERVER_HELLO)){
+                if (!SERVER_HELLO.equals(in.readObject())){
                    System.out.println("CLIENT: Error");
                    return false;     
                 }
 
                 //Third step of handshake ACK client
                 out.writeObject(ACK_CLIENT);
+                out.flush();
                 System.out.println("CLIENT: ACK sent");
 
                 //Forth step of handshake 
-                if(!in.readLine().equals(ACK_SERVER)){
+                if(!ACK_SERVER.equals(in.readObject())){
                         System.out.println("CLIENT: Server ERROR");
                         return false;
                 }
